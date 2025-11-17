@@ -1,9 +1,6 @@
-
-
-
 from PyQt6 import QtCore, QtGui, QtWidgets
 from connector import c
-from funcs import swap_to_sklad
+from PyQt6.QtWidgets import QMessageBox
 
 class Ui_Reg(object):
     def setupUi(self, RegWindow):
@@ -29,9 +26,11 @@ class Ui_Reg(object):
         self.linePassword = QtWidgets.QLineEdit(parent=self.centralwidget)
         self.linePassword.setGeometry(QtCore.QRect(160, 140, 371, 26))
         self.linePassword.setObjectName("linePassword")
+        self.linePassword.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
         self.checkBox = QtWidgets.QCheckBox(parent=self.centralwidget)
         self.checkBox.setGeometry(QtCore.QRect(380, 180, 151, 24))
         self.checkBox.setObjectName("checkBox")
+        self.checkBox.toggled.connect(self.showPassword)
         self.authButton = QtWidgets.QPushButton(parent=self.centralwidget)
         self.authButton.setGeometry(QtCore.QRect(210, 270, 171, 51))
         self.authButton.setObjectName("authButton")
@@ -61,7 +60,19 @@ class Ui_Reg(object):
     def auth(self):
         login = self.lineLogin.text()
         password = self.linePassword.text()
-        c.execute("SELECT password FROM autorization WHERE login = %s",(login,))
+        c.execute("SELECT password,UserID FROM autorization WHERE login = %s",(login,))
         result = c.fetchone()
-        if result!=None and result[0] == password:
-            swap_to_sklad()
+        if result == None:
+            QMessageBox.critical(None,"Ошибка","Такого пользователя не существует",QMessageBox.StandardButton.Ok)
+        elif result[0] != password:
+            QMessageBox.critical(None,"Ошибка","Неверный пароль",QMessageBox.StandardButton.Ok)
+        else:
+            from config import manager
+            manager.set_current_userID(result[1])
+            manager.show_sklad()
+            
+    def showPassword(self,checked):
+        if checked:
+            self.linePassword.setEchoMode(QtWidgets.QLineEdit.EchoMode.Normal)
+        else:
+            self.linePassword.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
