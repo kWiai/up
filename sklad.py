@@ -55,6 +55,7 @@ class Ui_Sklad(object):
         """)
         self.tableWidget.verticalHeader().setVisible(False)
         self.tableWidget.setEditTriggers(QtWidgets.QTableWidget.EditTrigger.NoEditTriggers)
+        self.tableWidget.setSelectionMode(QtWidgets.QTableWidget.SelectionMode.SingleSelection)
         self.tableWidget.setSelectionBehavior(QtWidgets.QTableWidget.SelectionBehavior.SelectRows)
         item = QtWidgets.QTableWidgetItem()
         self.tableWidget.setHorizontalHeaderItem(0, item)
