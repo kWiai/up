@@ -50,9 +50,28 @@ class WindowManager:
         
         self.current_window = self.sklad_window
         self.sklad_window.show()
-    
+
+    def show_tovar_append(self):
+        from tovar import Ui_Tovar
+        if self.current_window:
+            self.current_window.close()
+
+        self.tovar_window = QtWidgets.QMainWindow()
+        self.tovar_ui = Ui_Tovar()
+        self.tovar_ui.setupUi(self.tovar_window)
+        
+        self.tovar_window.closeEvent = self.tovar_close_event
+
+        self.current_window = self.tovar_window
+        self.tovar_window.show()
+
+    def tovar_close_event(self, event):
+        self.show_sklad()
+        event.accept()
+        
     def run(self):
         """Запуск приложения"""
         self.show_registration()
         sys.exit(self.app.exec())
-
+    
+    
