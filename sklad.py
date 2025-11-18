@@ -37,6 +37,7 @@ class Ui_Sklad(object):
         self.lineEdit = QtWidgets.QLineEdit(parent=self.centralwidget)
         self.lineEdit.setGeometry(QtCore.QRect(250, 40, 421, 26))
         self.lineEdit.setObjectName("lineEdit")
+        self.lineEdit.textChanged.connect(self.initProductTableData)
         self.groupBox_2 = QtWidgets.QGroupBox(parent=self.centralwidget)
         self.groupBox_2.setGeometry(QtCore.QRect(10, 80, 631, 521))
         self.groupBox_2.setTitle("")
@@ -114,19 +115,20 @@ class Ui_Sklad(object):
         self.label_3.adjustSize()
 
     def initProductTableData(self):
-        if self.lineEdit.text() == None:
+        if self.lineEdit.text() == "":
             c.execute("SELECT * FROM Tovar")
             # (["...по артикулу","...по производителю","...по названию"])
         elif self.comboBox.currentIndex() == 0:
             c.execute("SELECT * FROM Tovar WHERE ID = %s",(self.lineEdit.text(),))
 
         elif self.comboBox.currentIndex() == 1:
-            c.execute("SELECT ID FROM manufacturer WHERE Value = %s",(self.lineEdit.text(),))
-            mid = c.fetchone()[0]
-            c.execute("SELECT * FROM Tovar WHERE ManufacturerID = %s",(mid,))
+            c.execute("SELECT ID FROM Manufacturer WHERE Value = %s",(self.lineEdit.text(),))
+            mid = c.fetchone()
+            if mid!=None:
+                c.execute("SELECT * FROM Tovar WHERE ManufacturerID = %s",(mid[0],))
 
         elif self.comboBox.currentIndex() == 2:
-            c.execute("SELECT * FROM Tovar ")
+            c.execute("SELECT * FROM Tovar WHERE Name = %s",(self.lineEdit.text(),))
 
         result = c.fetchall()
         self.tableWidget.setRowCount(len(result))
