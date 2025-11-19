@@ -7,7 +7,8 @@ class Ui_Tovar(object):
     
     def __init__(self):
         self.changed = False
-        
+        self.newChars = []
+
         
     def setupUi(self, TovarWindow):
         TovarWindow.setObjectName("TovarWindow")
@@ -111,6 +112,7 @@ class Ui_Tovar(object):
         self.pushButton_3 = QtWidgets.QPushButton(parent=self.groupBox_2)
         self.pushButton_3.setGeometry(QtCore.QRect(350, 140, 241, 29))
         self.pushButton_3.setObjectName("pushButton_3")
+        self.pushButton_3.clicked.connect(self.addNewChar)
         self.pushButton_4 = QtWidgets.QPushButton(parent=self.groupBox_2)
         self.pushButton_4.setGeometry(QtCore.QRect(350, 340, 241, 29))
         self.pushButton_4.setObjectName("pushButton_4")
@@ -195,7 +197,13 @@ class Ui_Tovar(object):
 
     def discard(self):
         self.changed = False
+        if len(self.newChars) != 0:
+            for char in self.newChars:
+                c.execute("DELETE FROM characters WHERE Value = %s",(char,))
+                db.commit()
+            self.newChars = []
         self.groupBox_2.setVisible(False)
+        
     
     def charTableInit(self):
         typeID = self.typeBox.currentData()
@@ -248,6 +256,7 @@ class Ui_Tovar(object):
                     charID = c.fetchone()[0]
                     c.execute("INSERT INTO charvalues (TovarID,CharID,Value) VALUES (%s,%s,%s)",(tovarID,charID,charduo[1],))
                     db.commit()
+                    self.newChars = []
                     manager.show_sklad()
             else:
                 QMessageBox.critical(None,"Ошибка","Данные заполнены некорректно",QMessageBox.StandardButton.Ok)
@@ -255,17 +264,23 @@ class Ui_Tovar(object):
     def createType(self):
         pass
 
-    def addNewChar(self):
-        pass
-        # charName = self.lineEdit_3.text()
-        # self.tableWidget_newType
-
+    def addNewChar(self):        
+        charName = self.lineEdit_3.text()
+        if charName == "":
+            QMessageBox.critical(None,"ошибка","некоректно введены данные",QMessageBox.StandardButton.Ok)
+        else:
+            c.execute("INSERT INTO characters (Value) VALUES(%s)",(charName,))
+            self.newChars.append(charName)
+            db.commit()
+            self.newCharTableInit()
+            self.lineEdit_3.setText("")
     def newCharTableInit(self):
         c.execute("SELECT Value FROM characters")
         characters = c.fetchall()
         self.tableWidget_newType.setRowCount(len(characters))
         for i in range(len(characters)):
             item = QtWidgets.QTableWidgetItem(str(characters[i][0]))
+            item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable)
             self.tableWidget_newType.setItem(i,1,item)
             checkbox = QtWidgets.QCheckBox()
 
