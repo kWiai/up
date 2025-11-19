@@ -116,6 +116,7 @@ class Ui_Tovar(object):
         self.pushButton_4 = QtWidgets.QPushButton(parent=self.groupBox_2)
         self.pushButton_4.setGeometry(QtCore.QRect(350, 340, 241, 29))
         self.pushButton_4.setObjectName("pushButton_4")
+        self.pushButton_4.clicked.connect(self.add_type)
         self.pushButton_5 = QtWidgets.QPushButton(parent=self.groupBox_2)
         self.pushButton_5.setGeometry(QtCore.QRect(350, 300, 241, 29))
         self.pushButton_5.setObjectName("pushButton_5")
@@ -256,13 +257,13 @@ class Ui_Tovar(object):
                     charID = c.fetchone()[0]
                     c.execute("INSERT INTO charvalues (TovarID,CharID,Value) VALUES (%s,%s,%s)",(tovarID,charID,charduo[1],))
                     db.commit()
-                    self.newChars = []
-                    manager.show_sklad()
+                QMessageBox.information(None,"Успешно","Новый товар добавлен",QMessageBox.StandardButton.Ok)
+                self.newChars = []
+                manager.show_sklad()
             else:
                 QMessageBox.critical(None,"Ошибка","Данные заполнены некорректно",QMessageBox.StandardButton.Ok)
     
-    def createType(self):
-        pass
+    
 
     def addNewChar(self):        
         charName = self.lineEdit_3.text()
@@ -293,6 +294,48 @@ class Ui_Tovar(object):
             self.tableWidget_newType.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
             self.tableWidget_newType.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Stretch)
 
+    def add_type(self):
+        if self.lineEdit_2.text() == "":
+            QMessageBox.critical(None,"Ошибка","Дайте название типу",QMessageBox.StandardButton.Ok)
+        else:
+            self.newChars = []
+            name = self.lineEdit_2.text()
+            tableRowCount = self.tableWidget_newType.rowCount()
+            chars = []
+            for i in range(tableRowCount):
+                widget = self.tableWidget_newType.cellWidget(i, 0)
+                if widget is not None:
+                    checkbox = widget.findChild(QtWidgets.QCheckBox)
+                    if checkbox and checkbox.isChecked():
+                        char_item = self.tableWidget_newType.item(i, 1)
+                        if char_item is not None:
+                            chars.append(char_item.text())
+            if len(chars) == 0:
+                QMessageBox.critical(None,"Ошибка","Вы не выбрали характеристики",QMessageBox.StandardButton.Ok)
+                
+            else:    
+                c.execute("INSERT INTO typetovar(Value) VALUES (%s)",(name,))
+                db.commit()
+                c.execute("SELECT ID FROM typetovar WHERE Value = %s",(name,))
+                typeID = c.fetchone()[0]
+                
+                    
+                for char in chars:
+                    c.execute("SELECT ID FROM characters WHERE Value = %s",(char,))
+                    charID = c.fetchone()[0]
+                    c.execute("INSERT INTO typecharlist (TypeID,CharID) VALUES (%s,%s)",(typeID,charID,))
+                    db.commit()
+                self.typeBox.clear()
+                self.typeBox.addItem("", userData=None)
+                c.execute("SELECT Value,ID FROM typetovar")
+                types = c.fetchall()
+                for type in types:
+                    self.typeBox.addItem(type[0],userData=type[1])
+                self.groupBox_2.setVisible(False)
+                self.changed = False
+                QMessageBox.information(None,"Успешно","Новый тип товара добавлен",QMessageBox.StandardButton.Ok)
+                    
+                
     def close_event(self, event):
         """Обработчик закрытия окна - открывает окно склада"""
         # Открываем окно склада

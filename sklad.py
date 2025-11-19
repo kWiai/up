@@ -119,16 +119,16 @@ class Ui_Sklad(object):
             c.execute("SELECT * FROM Tovar")
             # (["...по артикулу","...по производителю","...по названию"])
         elif self.comboBox.currentIndex() == 0:
-            c.execute("SELECT * FROM Tovar WHERE ID = %s",(self.lineEdit.text(),))
+            c.execute("SELECT * FROM tovar WHERE ID = %s",(self.lineEdit.text(),))
 
         elif self.comboBox.currentIndex() == 1:
-            c.execute("SELECT ID FROM Manufacturer WHERE Value = %s",(self.lineEdit.text(),))
+            c.execute("SELECT ID FROM manufacturer WHERE Value = %s",(self.lineEdit.text(),))
             mid = c.fetchone()
             if mid!=None:
-                c.execute("SELECT * FROM Tovar WHERE ManufacturerID = %s",(mid[0],))
+                c.execute("SELECT * FROM tovar WHERE ManufacturerID = %s",(mid[0],))
 
         elif self.comboBox.currentIndex() == 2:
-            c.execute("SELECT * FROM Tovar WHERE Name = %s",(self.lineEdit.text(),))
+            c.execute("SELECT * FROM tovar WHERE Name = %s",(self.lineEdit.text(),))
 
         result = c.fetchall()
         self.tableWidget.setRowCount(len(result))
