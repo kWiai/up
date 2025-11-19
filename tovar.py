@@ -39,6 +39,7 @@ class Ui_Tovar(object):
         self.doubleSpinBox = QtWidgets.QDoubleSpinBox(parent=self.groupBox)
         self.doubleSpinBox.setGeometry(QtCore.QRect(490, 30, 101, 26))
         self.doubleSpinBox.setObjectName("doubleSpinBox")
+        self.doubleSpinBox.setMaximum(9999999.99)
         self.lineEdit = QtWidgets.QLineEdit(parent=self.groupBox)
         self.lineEdit.setGeometry(QtCore.QRect(130, 60, 461, 26))
         self.lineEdit.setObjectName("lineEdit")
