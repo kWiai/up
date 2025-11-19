@@ -1,5 +1,5 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
-from connector import c
+from connector import c,db
 from config import manager
 from PyQt6.QtWidgets import QMessageBox
 
@@ -7,6 +7,7 @@ class Ui_Tovar(object):
     
     def __init__(self):
         self.changed = False
+        
         
     def setupUi(self, TovarWindow):
         TovarWindow.setObjectName("TovarWindow")
@@ -85,11 +86,15 @@ class Ui_Tovar(object):
         self.lineEdit_2 = QtWidgets.QLineEdit(parent=self.groupBox_2)
         self.lineEdit_2.setGeometry(QtCore.QRect(130, 30, 461, 26))
         self.lineEdit_2.setObjectName("lineEdit_2")
-        self.tableWidget = QtWidgets.QTableWidget(parent=self.groupBox_2)
-        self.tableWidget.setGeometry(QtCore.QRect(10, 70, 321, 301))
-        self.tableWidget.setObjectName("tableWidget")
-        self.tableWidget.setColumnCount(0)
-        self.tableWidget.setRowCount(0)
+        self.tableWidget_newType = QtWidgets.QTableWidget(parent=self.groupBox_2)
+        self.tableWidget_newType.setGeometry(QtCore.QRect(10, 70, 321, 301))
+        self.tableWidget_newType.setObjectName("tableWidget")
+        self.tableWidget_newType.setColumnCount(0)
+        self.tableWidget_newType.setRowCount(0)
+        self.tableWidget_newType.setColumnCount(2)
+        self.tableWidget_newType.setRowCount(0)
+        self.tableWidget_newType.verticalHeader().setVisible(False)
+        self.tableWidget_newType.horizontalHeader().setVisible(False)
         self.tableWidget_char = QtWidgets.QTableWidget(parent=self.groupBox_3)
         self.tableWidget_char.setGeometry(QtCore.QRect(0, 0, 601, 370))
         self.tableWidget_char.setObjectName("tableWidget")
@@ -186,6 +191,7 @@ class Ui_Tovar(object):
         if self.groupBox_3.isVisible():
             self.groupBox_3.setVisible(False)
         self.groupBox_2.setVisible(True)
+        self.newCharTableInit()
 
     def discard(self):
         self.changed = False
@@ -211,16 +217,67 @@ class Ui_Tovar(object):
         manufactureID = self.manufactureBox.currentData()
         cost = self.doubleSpinBox.value()
         name = self.lineEdit.text()
-        garantType = self.garantBox.currentData()
-        garantValue = self.spinBox.value()
+        if not self.checkBox.isChecked():
+            garantType = 1
+            garantValue = 0
+        else: 
+            garantType = self.garantBox.currentData()
+            garantValue = self.spinBox.value()
         count = self.spinBox_2.value()
         typeID = self.typeBox.currentData()
         if manufactureID == None or cost == 0 or name == "" or (self.checkBox.isChecked() and (garantValue == 0 or (garantType == None or garantType == 1))) or count == 0 or typeID == None:
             QMessageBox.critical(None,"Ошибка","Данные заполнены некорректно",QMessageBox.StandardButton.Ok)
         else:
-            print("почти красавчик")
-        
+            chars = []
+            fail = False
+            charLen = self.tableWidget_char.rowCount()
+            for i in range(charLen):
+                if self.tableWidget_char.item(i,1) == None:
+                    fail = True
+                    break
+                else:
+                    chars.append([self.tableWidget_char.item(i,0).text(),self.tableWidget_char.item(i,1).text()])
+            
+            if not fail:
+                c.execute("INSERT INTO tovar (Name,ManufacturerID,TypeID,CostValue,GarantyValue,GarantyTypeID,Count) VALUES(%s,%s,%s,%s,%s,%s,%s)",(name,manufactureID,typeID,cost,garantValue,garantType,count,))
+                db.commit()
+                c.execute("SELECT ID FROM tovar WHERE Name = %s",(name,))
+                tovarID = c.fetchone()[0]
+                for charduo in chars:
+                    c.execute("SELECT ID FROM characters WHERE Value = %s",(charduo[0],))
+                    charID = c.fetchone()[0]
+                    c.execute("INSERT INTO charvalues (TovarID,CharID,Value) VALUES (%s,%s,%s)",(tovarID,charID,charduo[1],))
+                    db.commit()
+                    manager.show_sklad()
+            else:
+                QMessageBox.critical(None,"Ошибка","Данные заполнены некорректно",QMessageBox.StandardButton.Ok)
     
+    def createType(self):
+        pass
+
+    def addNewChar(self):
+        pass
+        # charName = self.lineEdit_3.text()
+        # self.tableWidget_newType
+
+    def newCharTableInit(self):
+        c.execute("SELECT Value FROM characters")
+        characters = c.fetchall()
+        self.tableWidget_newType.setRowCount(len(characters))
+        for i in range(len(characters)):
+            item = QtWidgets.QTableWidgetItem(str(characters[i][0]))
+            self.tableWidget_newType.setItem(i,1,item)
+            checkbox = QtWidgets.QCheckBox()
+
+            widget = QtWidgets.QWidget()
+            layout = QtWidgets.QHBoxLayout(widget)
+            layout.addWidget(checkbox)
+            layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            layout.setContentsMargins(0, 0, 0, 0)
+            self.tableWidget_newType.setCellWidget(i, 0, widget)
+            self.tableWidget_newType.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+            self.tableWidget_newType.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Stretch)
+
     def close_event(self, event):
         """Обработчик закрытия окна - открывает окно склада"""
         # Открываем окно склада

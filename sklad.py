@@ -159,20 +159,29 @@ class Ui_Sklad(object):
         selected_items = self.tableWidget.selectedItems()
         if selected_items:
             artikle = selected_items[0].text()
-            c.execute("SELECT TypeID FROM tovar WHERE ID = %s",(artikle,))
-            typeID = c.fetchone()[0]
-            c.execute("SELECT CharID FROM typecharlist WHERE TypeID = %s",(typeID,))
-            charlist = c.fetchall()
+            c.execute("SELECT CharID FROM charvalues WHERE TovarID = %s", (artikle,))
+            charlist = c.fetchall()  
+            
             self.tableWidget_2.setRowCount(len(charlist))
             self.tableWidget_2.setColumnCount(2)
+            
             for i in range(len(charlist)):
                 charID = str(charlist[i][0])
-                c.execute("SELECT Value FROM characters WHERE ID = %s",(charID,))
-                item = QtWidgets.QTableWidgetItem(c.fetchone()[0])
-                self.tableWidget_2.setItem(i,0,item)
-                c.execute("SELECT Value FROM charvalues WHERE CharID = %s",(charID,))
-                item = QtWidgets.QTableWidgetItem(c.fetchone()[0])
-                self.tableWidget_2.setItem(i,1,item)
+                
+                c.execute("SELECT Value FROM characters WHERE ID = %s", (charID,))
+                char_name_result = c.fetchone()  
+                if char_name_result:
+                    char_name = char_name_result[0]
+                    item = QtWidgets.QTableWidgetItem(char_name)
+                    self.tableWidget_2.setItem(i, 0, item)
+                
+                c.execute("SELECT Value FROM charvalues WHERE TovarID = %s AND CharID = %s", (artikle, charID))
+                char_value_result = c.fetchone()  
+                if char_value_result:
+                    char_value = char_value_result[0]
+                    item = QtWidgets.QTableWidgetItem(char_value)
+                    self.tableWidget_2.setItem(i, 1, item)
+        
         self.tableWidget_2.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
         self.tableWidget_2.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Stretch)
 
