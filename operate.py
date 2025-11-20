@@ -1,11 +1,14 @@
 from connector import c,db
 from PyQt6 import QtCore, QtGui, QtWidgets
 from config import manager
+from PyQt6.QtWidgets import QMessageBox
 import datetime
 from decimal import Decimal
 
 class Ui_Operate(object):
-
+    def __init__(self):
+        self.currentBoxIndex = -1
+        self.change = False
     def setupUi(self, OperateWindow):
         OperateWindow.setObjectName("OperateWindow")
         OperateWindow.resize(1045, 655)
@@ -103,6 +106,7 @@ class Ui_Operate(object):
         self.comboBox_2 = QtWidgets.QComboBox(parent=self.centralwidget)
         self.comboBox_2.setGeometry(QtCore.QRect(838, 600, 191, 26))
         self.comboBox_2.setObjectName("comboBox_2")
+        self.comboBox_2.currentIndexChanged.connect(self.changeStatus)
         OperateWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtWidgets.QStatusBar(parent=OperateWindow)
         self.statusbar.setObjectName("statusbar")
@@ -136,6 +140,13 @@ class Ui_Operate(object):
         self.label_2.setText(_translate("OperateWindow", "Сведения о заказе"))
         self.label_8.setText(_translate("OperateWindow", "Статус заказа"))
         self.comboBox.addItems(["...по клиенту","...по номеру заказа"])
+        self.change = True
+        c.execute("SELECT Value FROM orderstatus")
+        sr = c.fetchall()
+        for i in range(len(sr)):        
+            self.comboBox_2.addItem(str(sr[i][0]))
+            print(sr[i][0])
+        self.change = False
         self.comboBox_2.setVisible(False)
         self.initOrdersTable()
     
@@ -143,13 +154,15 @@ class Ui_Operate(object):
         manager.show_sklad()
     
     def initDescriptionTableAndLabels(self):
+        self.change = True
         self.tableWidget_2.clearContents()
         selected_items = self.tableWidget.selectedItems()
         if selected_items:
             self.label_8.setVisible(True)
             self.comboBox_2.setVisible(True)
             self.tableWidget_2.setVisible(True)
-            orderID = selected_items[1].text()[2]
+            order_text = selected_items[1].text()
+            orderID = int(order_text.split()[1])
             self.label_order.setText(f"Заказ: {orderID}")
             self.label_order.adjustSize()
             c.execute("SELECT * FROM ordershopcase WHERE OrderID = %s",(orderID,))
@@ -172,14 +185,9 @@ class Ui_Operate(object):
             self.label_date.setText(f"Дата проведения заказа: {date.strftime('%d.%m.%Y %H:%M:%S')}")
             self.label_date.adjustSize()
             self.tableWidget_2.setRowCount(len(ordersChar))
-            c.execute("SELECT Value FROM orderstatus")
-            sr = c.fetchall()
-            print(sr)
-            for i in range(len(sr)):
-                
-                self.comboBox_2.addItem(str(sr[i][0]))
-                print(sr[i][0])
-            self.comboBox_2.setCurrentIndex(int(status))
+            
+            self.comboBox_2.setCurrentIndex(int(status)-1)
+            self.currentBoxIndex = int(status)-1
             sumTovar = 0
             for i in range(len(ordersChar)):
                 item = QtWidgets.QTableWidgetItem(str(ordersChar[i][1]))
@@ -213,7 +221,52 @@ class Ui_Operate(object):
             
             self.label_totalCost.setText(f"Стоимость заказа к оплате: {float(sumTovar)}руб.")
             self.label_totalCost.adjustSize()
+        self.change = False
                 
+    def changeStatus(self):
+        if self.change:
+            pass
+        else:
+            reply = QtWidgets.QMessageBox.question(
+                None,
+                "Подтверждение",
+                "Вы уверены?",
+                QtWidgets.QMessageBox.StandardButton.Yes | 
+                QtWidgets.QMessageBox.StandardButton.No,
+                QtWidgets.QMessageBox.StandardButton.No  # кнопка по умолчанию
+            )
+
+            if reply == QtWidgets.QMessageBox.StandardButton.Yes:
+                self.currentBoxIndex = self.comboBox_2.currentIndex()
+                selected_items = self.tableWidget.selectedItems()
+                
+                if selected_items and len(selected_items) > 1:
+                    # Правильно извлекаем ID заказа
+                    order_text = selected_items[1].text()  # Получаем текст вида "№ 123 от 13.11.2025"
+                    
+                    # Извлекаем число после "№ "
+                    try:
+                        # Разделяем текст по пробелам и берем вторую часть (число)
+                        orderID = int(order_text.split()[1])
+                        
+                        # В базе данных индексы статусов начинаются с 1, а currentIndex с 0
+                        status_id = self.currentBoxIndex + 1
+                        
+                        c.execute("UPDATE orders SET StatusID = %s WHERE ID = %s", (status_id, orderID))
+                        db.commit()
+                        print(f"Статус заказа {orderID} изменен на {status_id}")
+                        
+                    except (ValueError, IndexError) as e:
+                        print(f"Ошибка при извлечении ID заказа: {e}")
+                    except Exception as e:
+                        print(f"Ошибка при обновлении статуса: {e}")
+                else:
+                    print("Не выбран заказ для изменения статуса")
+
+            else:
+                self.change = True
+                self.comboBox_2.setCurrentIndex(self.currentBoxIndex)
+                self.change = False
 
     def initOrdersTable(self):
         if self.lineEdit.text() == "":
