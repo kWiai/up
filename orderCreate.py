@@ -7,14 +7,16 @@
 
 
 from PyQt6 import QtCore, QtGui, QtWidgets
+from config import manager
 
-
-class Ui_MainWindow(object):
-    def setupUi(self, MainWindow):
-        MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1399, 674)
-        self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
+class Ui_OrderCreate(object):
+    def setupUi(self, OrderCreateWindow):
+        OrderCreateWindow.setObjectName("OrderCreateWindow")
+        OrderCreateWindow.resize(1399, 674)
+        self.centralwidget = QtWidgets.QWidget(parent=OrderCreateWindow)
         self.centralwidget.setObjectName("centralwidget")
+        self.OrderCreateWindow = OrderCreateWindow
+        self.OrderCreateWindow.closeEvent = self.close_event
         self.pushButton = QtWidgets.QPushButton(parent=self.centralwidget)
         self.pushButton.setGeometry(QtCore.QRect(10, 10, 211, 29))
         self.pushButton.setObjectName("pushButton")
@@ -27,6 +29,7 @@ class Ui_MainWindow(object):
         self.pushButton_2 = QtWidgets.QPushButton(parent=self.centralwidget)
         self.pushButton_2.setGeometry(QtCore.QRect(450, 80, 231, 29))
         self.pushButton_2.setObjectName("pushButton_2")
+        self.pushButton_2.clicked.connect(self.openClientCreate)
         self.label_2 = QtWidgets.QLabel(parent=self.centralwidget)
         self.label_2.setGeometry(QtCore.QRect(10, 130, 121, 20))
         self.label_2.setObjectName("label_2")
@@ -76,53 +79,54 @@ class Ui_MainWindow(object):
         self.label_5 = QtWidgets.QLabel(parent=self.centralwidget)
         self.label_5.setGeometry(QtCore.QRect(240, 610, 63, 20))
         self.label_5.setObjectName("label_5")
-        MainWindow.setCentralWidget(self.centralwidget)
-        self.statusbar = QtWidgets.QStatusBar(parent=MainWindow)
+        OrderCreateWindow.setCentralWidget(self.centralwidget)
+        self.statusbar = QtWidgets.QStatusBar(parent=OrderCreateWindow)
         self.statusbar.setObjectName("statusbar")
-        MainWindow.setStatusBar(self.statusbar)
+        OrderCreateWindow.setStatusBar(self.statusbar)
 
-        self.retranslateUi(MainWindow)
-        QtCore.QMetaObject.connectSlotsByName(MainWindow)
+        self.retranslateUi(OrderCreateWindow)
+        QtCore.QMetaObject.connectSlotsByName(OrderCreateWindow)
 
-    def retranslateUi(self, MainWindow):
+    def retranslateUi(self, OrderCreateWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
-        self.pushButton.setText(_translate("MainWindow", "Добавить заказ в систему"))
-        self.label.setText(_translate("MainWindow", "Клиент:"))
-        self.pushButton_2.setText(_translate("MainWindow", "Добавить нового клиента"))
-        self.label_2.setText(_translate("MainWindow", "Корзина заказа:"))
+        OrderCreateWindow.setWindowTitle(_translate("OrderCreateWindow", "Создание нового заказа"))
+        self.pushButton.setText(_translate("OrderCreateWindow", "Добавить заказ в систему"))
+        self.label.setText(_translate("OrderCreateWindow", "Клиент:"))
+        self.pushButton_2.setText(_translate("OrderCreateWindow", "Добавить нового клиента"))
+        self.label_2.setText(_translate("OrderCreateWindow", "Корзина заказа:"))
         item = self.tableWidget.horizontalHeaderItem(0)
-        item.setText(_translate("MainWindow", "Артикул"))
+        item.setText(_translate("OrderCreateWindow", "Артикул"))
         item = self.tableWidget.horizontalHeaderItem(1)
-        item.setText(_translate("MainWindow", "Наименование"))
+        item.setText(_translate("OrderCreateWindow", "Наименование"))
         item = self.tableWidget.horizontalHeaderItem(2)
-        item.setText(_translate("MainWindow", "Цена"))
+        item.setText(_translate("OrderCreateWindow", "Цена"))
         item = self.tableWidget.horizontalHeaderItem(3)
-        item.setText(_translate("MainWindow", "Кол-во"))
+        item.setText(_translate("OrderCreateWindow", "Кол-во"))
         item = self.tableWidget.horizontalHeaderItem(4)
-        item.setText(_translate("MainWindow", "Стоимость"))
+        item.setText(_translate("OrderCreateWindow", "Стоимость"))
         item = self.tableWidget.horizontalHeaderItem(5)
-        item.setText(_translate("MainWindow", " "))
+        item.setText(_translate("OrderCreateWindow", " "))
         item = self.tableWidget_2.horizontalHeaderItem(0)
-        item.setText(_translate("MainWindow", "Артикул"))
+        item.setText(_translate("OrderCreateWindow", "Артикул"))
         item = self.tableWidget_2.horizontalHeaderItem(1)
-        item.setText(_translate("MainWindow", "Наименование"))
+        item.setText(_translate("OrderCreateWindow", "Наименование"))
         item = self.tableWidget_2.horizontalHeaderItem(2)
-        item.setText(_translate("MainWindow", "Цена"))
+        item.setText(_translate("OrderCreateWindow", "Цена"))
         item = self.tableWidget_2.horizontalHeaderItem(3)
-        item.setText(_translate("MainWindow", "Кол-во"))
+        item.setText(_translate("OrderCreateWindow", "Кол-во"))
         item = self.tableWidget_2.horizontalHeaderItem(4)
-        item.setText(_translate("MainWindow", "Стоимость"))
-        self.label_3.setText(_translate("MainWindow", "Поиск наименований:"))
-        self.label_4.setText(_translate("MainWindow", "TextLabel"))
-        self.label_5.setText(_translate("MainWindow", "TextLabel"))
+        item.setText(_translate("OrderCreateWindow", "Стоимость"))
+        self.label_3.setText(_translate("OrderCreateWindow", "Поиск наименований:"))
+        self.label_4.setText(_translate("OrderCreateWindow", "TextLabel"))
+        self.label_5.setText(_translate("OrderCreateWindow", "TextLabel"))
 
+    def openClientCreate(self):
+        manager.show_clientCreateWindow()
 
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    ui = Ui_MainWindow()
-    ui.setupUi(MainWindow)
-    MainWindow.show()
-    sys.exit(app.exec())
+    def close_event(self, event):
+        if manager.current_window == manager.clientCreate_window:
+            pass
+        else:
+            manager.show_operateWindow()
+            event.accept()
+

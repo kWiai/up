@@ -17,6 +17,7 @@ class WindowManager:
             self.current_window = None
             self.current_user_id = None
             self._initialized = True
+            self.suppress_order_close_event = False  # Флаг для подавления события
     
     def set_current_userID(self,userID):
         self.current_user_id = userID
@@ -82,6 +83,16 @@ class WindowManager:
             self.show_operateWindow()
                 # Подтверждаем закрытие текущего окна
             event.accept()
+    
+    def order_close_event(self, event):
+        # Если флаг установлен, не выполняем стандартную логику
+        if not self.suppress_order_close_event:
+            self.show_operateWindow()
+        event.accept()
+    
+    def client_close_event(self, event):
+        self.show_orderCreateWindow()
+        event.accept()
 
 
     def show_operateWindow(self):
@@ -93,6 +104,35 @@ class WindowManager:
         self.operate_ui.setupUi(self.operate_window)
         self.current_window = self.operate_window
         self.operate_window.show()
+
+    def show_orderCreateWindow(self):
+        from orderCreate import Ui_OrderCreate
+        if self.current_window:
+            self.current_window.close()
+        self.orderCreate_window = QtWidgets.QMainWindow()
+        self.orderCreate_ui = Ui_OrderCreate()
+        self.orderCreate_ui.setupUi(self.orderCreate_window)
+        self.orderCreate_window.closeEvent = self.order_close_event
+        self.current_window = self.orderCreate_window
+        self.orderCreate_window.show()
+    
+    def show_clientCreateWindow(self):
+        from client import Ui_ClientCreate
+        # Временно отключаем обработку закрытия окна заказа
+        self.suppress_order_close_event = True
+        
+        if self.current_window:
+            self.current_window.close()
+            
+        self.clientCreate_window = QtWidgets.QMainWindow()
+        self.clientCreate_ui = Ui_ClientCreate()
+        self.clientCreate_ui.setupUi(self.clientCreate_window)
+        self.clientCreate_window.closeEvent = self.client_close_event
+        self.current_window = self.clientCreate_window
+        self.clientCreate_window.show()
+        
+        # Включаем обратно обработку закрытия
+        self.suppress_order_close_event = False
 
     def run(self):
         """Запуск приложения"""

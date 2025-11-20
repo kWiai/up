@@ -7,14 +7,16 @@
 
 
 from PyQt6 import QtCore, QtGui, QtWidgets
+from config import manager
 
-
-class Ui_MainWindow(object):
-    def setupUi(self, MainWindow):
-        MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(598, 478)
-        self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
+class Ui_ClientCreate(object):
+    def setupUi(self, ClientCreateWindow):
+        ClientCreateWindow.setObjectName("ClientCreateWindow")
+        ClientCreateWindow.resize(598, 478)
+        self.centralwidget = QtWidgets.QWidget(parent=ClientCreateWindow)
         self.centralwidget.setObjectName("centralwidget")
+        self.ClientCreateWindow = ClientCreateWindow
+        self.ClientCreateWindow.closeEvent = self.close_event
         self.label = QtWidgets.QLabel(parent=self.centralwidget)
         self.label.setGeometry(QtCore.QRect(10, 10, 231, 20))
         self.label.setObjectName("label")
@@ -83,36 +85,30 @@ class Ui_MainWindow(object):
         self.pushButton = QtWidgets.QPushButton(parent=self.centralwidget)
         self.pushButton.setGeometry(QtCore.QRect(490, 420, 101, 29))
         self.pushButton.setObjectName("pushButton")
-        MainWindow.setCentralWidget(self.centralwidget)
-        self.statusbar = QtWidgets.QStatusBar(parent=MainWindow)
+        ClientCreateWindow.setCentralWidget(self.centralwidget)
+        self.statusbar = QtWidgets.QStatusBar(parent=ClientCreateWindow)
         self.statusbar.setObjectName("statusbar")
-        MainWindow.setStatusBar(self.statusbar)
+        ClientCreateWindow.setStatusBar(self.statusbar)
 
-        self.retranslateUi(MainWindow)
-        QtCore.QMetaObject.connectSlotsByName(MainWindow)
+        self.retranslateUi(ClientCreateWindow)
+        QtCore.QMetaObject.connectSlotsByName(ClientCreateWindow)
 
-    def retranslateUi(self, MainWindow):
+    def retranslateUi(self, ClientCreateWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
-        self.label.setText(_translate("MainWindow", "Добавление сведений о клиенте"))
-        self.label_2.setText(_translate("MainWindow", "Фамилия:"))
-        self.label_3.setText(_translate("MainWindow", "Имя:"))
-        self.label_4.setText(_translate("MainWindow", "Отчество:"))
-        self.label_5.setText(_translate("MainWindow", "Дата рождения:"))
-        self.label_6.setText(_translate("MainWindow", "Контактный телефон:"))
-        self.label_7.setText(_translate("MainWindow", "Паспотные данные"))
-        self.label_8.setText(_translate("MainWindow", "Серия:"))
-        self.label_9.setText(_translate("MainWindow", "Номер:"))
-        self.label_10.setText(_translate("MainWindow", "Дата выдачи:"))
-        self.label_11.setText(_translate("MainWindow", "Орган выдачи паспорта:"))
-        self.pushButton.setText(_translate("MainWindow", "Применить"))
+        ClientCreateWindow.setWindowTitle(_translate("ClientCreateWindow", "Добавление клиента"))
+        self.label.setText(_translate("ClientCreateWindow", "Добавление сведений о клиенте"))
+        self.label_2.setText(_translate("ClientCreateWindow", "Фамилия:"))
+        self.label_3.setText(_translate("ClientCreateWindow", "Имя:"))
+        self.label_4.setText(_translate("ClientCreateWindow", "Отчество:"))
+        self.label_5.setText(_translate("ClientCreateWindow", "Дата рождения:"))
+        self.label_6.setText(_translate("ClientCreateWindow", "Контактный телефон:"))
+        self.label_7.setText(_translate("ClientCreateWindow", "Паспотные данные"))
+        self.label_8.setText(_translate("ClientCreateWindow", "Серия:"))
+        self.label_9.setText(_translate("ClientCreateWindow", "Номер:"))
+        self.label_10.setText(_translate("ClientCreateWindow", "Дата выдачи:"))
+        self.label_11.setText(_translate("ClientCreateWindow", "Орган выдачи паспорта:"))
+        self.pushButton.setText(_translate("ClientCreateWindow", "Применить"))
 
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    ui = Ui_MainWindow()
-    ui.setupUi(MainWindow)
-    MainWindow.show()
-    sys.exit(app.exec())
+    def close_event(self, event):
+        manager.show_orderCreateWindow()
+        event.accept()

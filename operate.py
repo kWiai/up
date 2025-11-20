@@ -20,9 +20,11 @@ class Ui_Operate(object):
         self.pushButton_2 = QtWidgets.QPushButton(parent=self.centralwidget)
         self.pushButton_2.setGeometry(QtCore.QRect(10, 50, 171, 29))
         self.pushButton_2.setObjectName("pushButton_2")
+        self.pushButton_2.clicked.connect(self.open_orderCreate)
         self.pushButton_3 = QtWidgets.QPushButton(parent=self.centralwidget)
         self.pushButton_3.setGeometry(QtCore.QRect(190, 50, 191, 29))
         self.pushButton_3.setObjectName("pushButton_3")
+        self.pushButton_3.clicked.connect(self.deleteOrder)
         self.label = QtWidgets.QLabel(parent=self.centralwidget)
         self.label.setGeometry(QtCore.QRect(150, 90, 71, 20))
         self.label.setObjectName("label")
@@ -153,6 +155,12 @@ class Ui_Operate(object):
     def open_sklad(self):
         manager.show_sklad()
     
+    def open_orderCreate(self):
+        manager.show_orderCreateWindow()
+
+    def deleteOrder(self):
+        print("бабожир")
+
     def initDescriptionTableAndLabels(self):
         self.change = True
         self.tableWidget_2.clearContents()
@@ -309,10 +317,6 @@ class Ui_Operate(object):
             self.tableWidget.setItem(i,0,item)
             dt = orders[i][1]
 
-            # print(dt.strftime("%d.%m.%Y %H:%M:%S"))  # 13.11.2025 11:44:24
-            # print(dt.strftime("%Y-%m-%d %H:%M:%S"))  # 2025-11-13 11:44:24
-            # print(dt.strftime("%A, %d %B %Y"))       # Thursday, 13 November 2025
-            # print(dt.strftime("%H:%M %d.%m.%Y"))     # 11:44 13.11.2025
             item = QtWidgets.QTableWidgetItem(f"№ {orders[i][0]} от {dt.strftime('%d.%m.%Y')}")
             self.tableWidget.setItem(i,1,item)
             self.tableWidget.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
