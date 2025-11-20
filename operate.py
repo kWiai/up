@@ -220,21 +220,21 @@ class Ui_Operate(object):
             c.execute("SELECT * FROM orders")
         elif self.comboBox.currentIndex() == 1:
             c.execute("SELECT * FROM orders WHERE ID = %s", (self.lineEdit.text(),))
-        elif self.comboBox.currentIndex() == 2:
+        elif self.comboBox.currentIndex() == 0:
             user = self.lineEdit.text()
-            c.execute("SELECT ID FROM users WHERE Name = %s OR Surname = %s OR Patronymic = %s", (user, user, user))
-            uids = c.fetchall()
+            # Используем UNION для объединения результатов
+            query = """
+                SELECT o.* FROM orders o
+                WHERE o.ClientID IN (
+                    SELECT ID FROM users WHERE Name = %s
+                    UNION
+                    SELECT ID FROM users WHERE Surname = %s
+                    UNION
+                    SELECT ID FROM users WHERE Patronymic = %s
+                )
+            """
+            c.execute(query, (user, user, user))
             
-            if uids:
-                # Создаем список ID пользователей
-                user_ids = [str(uid[0]) for uid in uids]
-                # Формируем запрос с несколькими значениями
-                placeholders = ','.join(['%s'] * len(user_ids))
-                query = f"SELECT * FROM orders WHERE ClientID IN ({placeholders})"
-                c.execute(query, user_ids)
-            else:
-                # Если пользователей не найдено, возвращаем пустой результат
-                res = []
         res = c.fetchall()
         if len(res) == 0:
             self.label_client.setText("")
