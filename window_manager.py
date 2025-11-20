@@ -24,6 +24,12 @@ class WindowManager:
     def get_current_userID(self):
         return self.current_user_id
     
+    def set_current_RoleID(self,roleID):
+        self.current_role_id = roleID
+        
+    def get_current_RoleID(self):
+        return self.current_role_id
+    
     def show_registration(self):
         """Показать окно регистрации"""
         from reg import Ui_Reg
@@ -43,10 +49,12 @@ class WindowManager:
         """Показать окно склада"""
         if self.current_window:
             self.current_window.close()
-            
+
         self.sklad_window = QtWidgets.QMainWindow()
         self.sklad_ui = Ui_Sklad()
         self.sklad_ui.setupUi(self.sklad_window)
+
+        self.sklad_window.closeEvent = self.sklad_close_event
         
         self.current_window = self.sklad_window
         self.sklad_window.show()
@@ -68,7 +76,24 @@ class WindowManager:
     def tovar_close_event(self, event):
         self.show_sklad()
         event.accept()
-        
+    
+    def sklad_close_event(self,event):
+        if self.get_current_RoleID() == 1:
+            self.show_operateWindow()
+                # Подтверждаем закрытие текущего окна
+            event.accept()
+
+
+    def show_operateWindow(self):
+        from operate import Ui_Operate
+        if self.current_window:
+            self.current_window.close()
+        self.operate_window = QtWidgets.QMainWindow()
+        self.operate_ui = Ui_Operate()
+        self.operate_ui.setupUi(self.operate_window)
+        self.current_window = self.operate_window
+        self.operate_window.show()
+
     def run(self):
         """Запуск приложения"""
         self.show_registration()

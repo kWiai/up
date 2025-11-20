@@ -69,8 +69,14 @@ class Ui_Reg(object):
         else:
             from config import manager
             manager.set_current_userID(result[1])
-            manager.show_sklad()
-            
+            c.execute("SELECT RoleID FROM users WHERE ID = %s",(manager.get_current_userID(),))
+            res = c.fetchone()
+            manager.set_current_RoleID(res[0])
+            if res[0] == 2:
+                manager.show_sklad()
+            elif res[0] == 1:
+                manager.show_operateWindow()
+
     def showPassword(self,checked):
         if checked:
             self.linePassword.setEchoMode(QtWidgets.QLineEdit.EchoMode.Normal)

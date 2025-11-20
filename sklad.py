@@ -10,10 +10,13 @@ class Ui_Sklad(object):
         SkladWindow.resize(1017, 663)
         self.centralwidget = QtWidgets.QWidget(parent=SkladWindow)
         self.centralwidget.setObjectName("centralwidget")
-        self.pushButton = QtWidgets.QPushButton(parent=self.centralwidget)
-        self.pushButton.setGeometry(QtCore.QRect(10, 0, 201, 29))
-        self.pushButton.setObjectName("pushButton")
-        self.pushButton.clicked.connect(self.appendTovar)
+        self.SkladWindow = SkladWindow
+        self.SkladWindow.closeEvent = self.close_event
+        if manager.get_current_RoleID() == 2:
+            self.pushButton = QtWidgets.QPushButton(parent=self.centralwidget)
+            self.pushButton.setGeometry(QtCore.QRect(10, 0, 201, 29))
+            self.pushButton.setObjectName("pushButton")
+            self.pushButton.clicked.connect(self.appendTovar)
         self.label = QtWidgets.QLabel(parent=self.centralwidget)
         self.label.setGeometry(QtCore.QRect(20, 40, 71, 20))
         self.label.setObjectName("label")
@@ -92,7 +95,8 @@ class Ui_Sklad(object):
     def retranslateUi(self, SkladWindow):
         _translate = QtCore.QCoreApplication.translate
         SkladWindow.setWindowTitle(_translate("SkladWindow", "Форма складского учета"))
-        self.pushButton.setText(_translate("SkladWindow", "Добавить товар в систему"))
+        if manager.get_current_RoleID() == 2:
+            self.pushButton.setText(_translate("SkladWindow", "Добавить товар в систему"))
         self.label.setText(_translate("SkladWindow", "Поиск по:"))
         self.groupBox.setTitle(_translate("SkladWindow", "Характеристики товара"))
         item = self.tableWidget.horizontalHeaderItem(0)
@@ -187,3 +191,9 @@ class Ui_Sklad(object):
 
     def appendTovar(self):
         manager.show_tovar_append()   
+    
+    def close_event(self, event):
+        if manager.get_current_RoleID() == 1:
+            manager.show_operateWindow()
+                # Подтверждаем закрытие текущего окна
+            event.accept()
