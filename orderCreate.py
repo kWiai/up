@@ -13,6 +13,8 @@ from connector import c,db
 class Ui_OrderCreate(object):
     def __init__(self):
         self.currentTovarIndexes = []
+        self.totalcount = 0
+        self.totalcost = 0
     def setupUi(self, OrderCreateWindow):
         OrderCreateWindow.setObjectName("OrderCreateWindow")
         OrderCreateWindow.setGeometry(50,100,1399, 674)
@@ -24,6 +26,7 @@ class Ui_OrderCreate(object):
         self.pushButton = QtWidgets.QPushButton(parent=self.centralwidget)
         self.pushButton.setGeometry(QtCore.QRect(10, 10, 211, 29))
         self.pushButton.setObjectName("pushButton")
+        self.pushButton.clicked.connect(self.addOrder)
         self.label = QtWidgets.QLabel(parent=self.centralwidget)
         self.label.setGeometry(QtCore.QRect(10, 50, 71, 20))
         self.label.setObjectName("label")
@@ -54,6 +57,10 @@ class Ui_OrderCreate(object):
         self.tableWidget.setHorizontalHeaderItem(4, item)
         item = QtWidgets.QTableWidgetItem()
         self.tableWidget.setHorizontalHeaderItem(5, item)
+        self.tableWidget.verticalHeader().setVisible(False)
+        self.tableWidget.setEditTriggers(QtWidgets.QTableWidget.EditTrigger.NoEditTriggers)
+        self.tableWidget.setSelectionMode(QtWidgets.QTableWidget.SelectionMode.SingleSelection)
+        self.tableWidget.setSelectionBehavior(QtWidgets.QTableWidget.SelectionBehavior.SelectRows)
         self.tableWidget_2 = QtWidgets.QTableWidget(parent=self.centralwidget)
         self.tableWidget_2.setGeometry(QtCore.QRect(710, 160, 671, 461))
         self.tableWidget_2.setObjectName("tableWidget_2")
@@ -81,12 +88,13 @@ class Ui_OrderCreate(object):
         self.lineEdit = QtWidgets.QLineEdit(parent=self.centralwidget)
         self.lineEdit.setGeometry(QtCore.QRect(880, 130, 501, 26))
         self.lineEdit.setObjectName("lineEdit")
-        self.label_4 = QtWidgets.QLabel(parent=self.centralwidget)
-        self.label_4.setGeometry(QtCore.QRect(10, 610, 63, 20))
-        self.label_4.setObjectName("label_4")
-        self.label_5 = QtWidgets.QLabel(parent=self.centralwidget)
-        self.label_5.setGeometry(QtCore.QRect(240, 610, 63, 20))
-        self.label_5.setObjectName("label_5")
+        self.lineEdit.textChanged.connect(self.rightTableInit)
+        self.label_count = QtWidgets.QLabel(parent=self.centralwidget)
+        self.label_count.setGeometry(QtCore.QRect(10, 610, 63, 20))
+        self.label_count.setObjectName("label_4")
+        self.label_cost = QtWidgets.QLabel(parent=self.centralwidget)
+        self.label_cost.setGeometry(QtCore.QRect(240, 610, 63, 20))
+        self.label_cost.setObjectName("label_5")
         OrderCreateWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtWidgets.QStatusBar(parent=OrderCreateWindow)
         self.statusbar.setObjectName("statusbar")
@@ -125,20 +133,33 @@ class Ui_OrderCreate(object):
         item = self.tableWidget_2.horizontalHeaderItem(4)
         item.setText(_translate("OrderCreateWindow", "Остаток"))
         self.label_3.setText(_translate("OrderCreateWindow", "Поиск наименований:"))
-        self.label_4.setText(_translate("OrderCreateWindow", "TextLabel"))
-        self.label_5.setText(_translate("OrderCreateWindow", "TextLabel"))
+        self.label_count.setText(_translate("OrderCreateWindow", "Кол-во наименований: 0"))
+        self.label_cost.setText(_translate("OrderCreateWindow", "Стоимость заказа: 0"))
+        self.label_cost.adjustSize()
+        self.label_count.adjustSize()
         self.rightTableInit()
+        self.clientComboInit()
+
     def openClientCreate(self):
         manager.show_clientCreateWindow()
 
     def rightTableInit(self):
         if self.currentTovarIndexes:
-            placeholders = ','.join(['%s'] * len(self.currentTovarIndexes))
-            c.execute(f"SELECT * FROM tovar WHERE ID NOT IN ({placeholders})", self.currentTovarIndexes)
-            result = c.fetchall()
+            if self.lineEdit.text() == "":
+                placeholders = ','.join(['%s'] * len(self.currentTovarIndexes))
+                c.execute(f"SELECT * FROM tovar WHERE ID NOT IN ({placeholders}) AND Count > 0", self.currentTovarIndexes)
+                result = c.fetchall()
+            else:
+                placeholders = ','.join(['%s'] * len(self.currentTovarIndexes))
+                c.execute("SELECT * FROM tovar INNER JOIN manufacturer ON tovar.ManufacturerID = manufacturer.ID INNER JOIN typetovar ON tovar.TypeID = typetovar.ID WHERE CONCAT(typetovar.Value,' ',manufacturer.Value,' ',tovar.Name) LIKE '%"+self.lineEdit.text()+"%' AND ID NOT IN ({placeholders}) AND Count > 0", self.currentTovarIndexes)
+                result = c.fetchall()
         else:
-            c.execute("SELECT * FROM tovar")
-            result = c.fetchall()
+            if self.lineEdit.text() == "":
+                c.execute("SELECT * FROM tovar WHERE Count > 0 ")
+                result = c.fetchall()
+            else:
+                c.execute("SELECT * FROM tovar INNER JOIN manufacturer ON tovar.ManufacturerID = manufacturer.ID INNER JOIN typetovar ON tovar.TypeID = typetovar.ID WHERE CONCAT(typetovar.Value,' ',manufacturer.Value,' ',tovar.Name) LIKE '%"+self.lineEdit.text()+"%' AND Count > 0")
+                result = c.fetchall()
 
         self.tableWidget_2.setRowCount(len(result))
         for i in range(len(result)):
@@ -248,8 +269,9 @@ class Ui_OrderCreate(object):
             self.tableWidget.setCellWidget(i, 3, widget1)
 
             # Сразу обновляем стоимость для текущего значения
-            costn = spinbox.value()
-            item = QtWidgets.QTableWidgetItem(str(result[i][4] * costn))
+            countn = spinbox.value()
+            
+            item = QtWidgets.QTableWidgetItem(str(result[i][4] * countn))
             self.tableWidget.setItem(i,4,item)
 
             pushbutton = QtWidgets.QPushButton()
@@ -268,6 +290,23 @@ class Ui_OrderCreate(object):
         self.tableWidget.horizontalHeader().setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
         self.tableWidget.horizontalHeader().setSectionResizeMode(5, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
 
+        tableRowCount = self.tableWidget.rowCount()
+        counts = []
+        costs = []
+        for i in range(tableRowCount):
+            widget = self.tableWidget.cellWidget(i, 3)
+            if widget is not None:
+                spinbox1 = widget.findChild(QtWidgets.QSpinBox)
+                if spinbox1:
+                    cost = float(self.tableWidget.item(i, 2).text())
+                    counts.append(spinbox1.value())
+                    costs.append(spinbox1.value()*cost)
+        
+        self.label_cost.setText(f"Стоимость заказа: {sum(costs)}")
+        self.label_count.setText(f"Кол-во наименований: {sum(counts)}")
+        self.label_cost.adjustSize()
+        self.label_count.adjustSize()
+
     def spinboxchange(self, row):
         """Обновляет стоимость для указанной строки"""
         cwidget = self.tableWidget.cellWidget(row, 3)
@@ -281,9 +320,34 @@ class Ui_OrderCreate(object):
                         quantity = cspinbox.value()
                         cost_item = QtWidgets.QTableWidgetItem(str(price * quantity))
                         self.tableWidget.setItem(row, 4, cost_item)
+                        tableRowCount = self.tableWidget.rowCount()
+                        counts = []
+                        costs = []
+                        for i in range(tableRowCount):
+                            widget = self.tableWidget.cellWidget(i, 3)
+                            if widget is not None:
+                                spinbox1 = widget.findChild(QtWidgets.QSpinBox)
+                                if spinbox1:
+                                    cost = float(self.tableWidget.item(i, 2).text())
+                                    counts.append(spinbox1.value())
+                                    costs.append(spinbox1.value()*cost)
+                        
+                        self.label_cost.setText(f"Стоимость заказа: {sum(costs)}")
+                        self.label_count.setText(f"Кол-во наименований: {sum(counts)}")
+                        self.label_cost.adjustSize()
+                        self.label_count.adjustSize()
                     except ValueError:
                         pass
+    def clientComboInit(self):
+        self.comboBox.addItem('',userData=None)
+        c.execute("SELECT CONCAT(users.Surname,' ',users.Name,' ',users.Patronymic,', тел. ',users.Phone),users.ID FROM orders INNER JOIN users ON orders.ClientID = users.ID")
+        clients = c.fetchall()
+        for i in clients:
+            self.comboBox.addItem(i[0],userData=i[1])
 
+    def addTovar(self):
+        pass
+    
     def close_event(self, event):
         if manager.current_window == manager.clientCreate_window:
             pass

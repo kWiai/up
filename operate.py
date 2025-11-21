@@ -282,19 +282,7 @@ class Ui_Operate(object):
         elif self.comboBox.currentIndex() == 1:
             c.execute("SELECT * FROM orders WHERE ID = %s", (self.lineEdit.text(),))
         elif self.comboBox.currentIndex() == 0:
-            user = self.lineEdit.text()
-            # Используем UNION для объединения результатов
-            query = """
-                SELECT o.* FROM orders o
-                WHERE o.ClientID IN (
-                    SELECT ID FROM users WHERE Name = %s
-                    UNION
-                    SELECT ID FROM users WHERE Surname = %s
-                    UNION
-                    SELECT ID FROM users WHERE Patronymic = %s
-                )
-            """
-            c.execute(query, (user, user, user))
+            c.execute("SELECT * FROM orders INNER JOIN users ON orders.ClientID = users.ID WHERE CONCAT(users.Surname,' ',users.Name,' ',users.Patronymic) LIKE '%"+self.lineEdit.text()+"%'")
             
         res = c.fetchall()
         if len(res) == 0:

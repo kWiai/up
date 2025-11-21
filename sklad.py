@@ -121,14 +121,15 @@ class Ui_Sklad(object):
     def initProductTableData(self):
         if self.lineEdit.text() == "":
             c.execute("SELECT * FROM Tovar")
-            # (["...по артикулу","...по производителю","...по названию"])
+            # (["...по артикулу",...по названию"])
         elif self.comboBox.currentIndex() == 0:
             c.execute("SELECT * FROM tovar WHERE ID = %s",(self.lineEdit.text(),))
 
         elif self.comboBox.currentIndex() == 1:
-            c.execute("SELECT * FROM tovar WHERE Name LIKE '%"+self.lineEdit.text()+"%'")
+            c.execute("SELECT * FROM tovar INNER JOIN manufacturer ON tovar.ManufacturerID = manufacturer.ID INNER JOIN typetovar ON tovar.TypeID = typetovar.ID WHERE CONCAT(typetovar.Value,' ',manufacturer.Value,' ',tovar.Name) LIKE '%"+self.lineEdit.text()+"%'")
 
         result = c.fetchall()
+
         self.tableWidget.setRowCount(len(result))
         for i in range(len(result)):
             item = QtWidgets.QTableWidgetItem(str(result[i][0]))
