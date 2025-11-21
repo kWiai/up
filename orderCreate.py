@@ -8,11 +8,15 @@
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 from config import manager
+from connector import c,db
 
 class Ui_OrderCreate(object):
+    def __init__(self):
+        self.currentTovarIndexes = []
     def setupUi(self, OrderCreateWindow):
         OrderCreateWindow.setObjectName("OrderCreateWindow")
-        OrderCreateWindow.resize(1399, 674)
+        OrderCreateWindow.setGeometry(50,100,1399, 674)
+        
         self.centralwidget = QtWidgets.QWidget(parent=OrderCreateWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.OrderCreateWindow = OrderCreateWindow
@@ -55,6 +59,10 @@ class Ui_OrderCreate(object):
         self.tableWidget_2.setObjectName("tableWidget_2")
         self.tableWidget_2.setColumnCount(6)
         self.tableWidget_2.setRowCount(0)
+        self.tableWidget_2.verticalHeader().setVisible(False)
+        self.tableWidget_2.setEditTriggers(QtWidgets.QTableWidget.EditTrigger.NoEditTriggers)
+        self.tableWidget_2.setSelectionMode(QtWidgets.QTableWidget.SelectionMode.SingleSelection)
+        self.tableWidget_2.setSelectionBehavior(QtWidgets.QTableWidget.SelectionBehavior.SelectRows)
         item = QtWidgets.QTableWidgetItem()
         self.tableWidget_2.setHorizontalHeaderItem(0, item)
         item = QtWidgets.QTableWidgetItem()
@@ -111,17 +119,170 @@ class Ui_OrderCreate(object):
         item = self.tableWidget_2.horizontalHeaderItem(1)
         item.setText(_translate("OrderCreateWindow", "Наименование"))
         item = self.tableWidget_2.horizontalHeaderItem(2)
-        item.setText(_translate("OrderCreateWindow", "Цена"))
+        item.setText(_translate("OrderCreateWindow", "Гарантия"))
         item = self.tableWidget_2.horizontalHeaderItem(3)
-        item.setText(_translate("OrderCreateWindow", "Кол-во"))
-        item = self.tableWidget_2.horizontalHeaderItem(4)
         item.setText(_translate("OrderCreateWindow", "Стоимость"))
+        item = self.tableWidget_2.horizontalHeaderItem(4)
+        item.setText(_translate("OrderCreateWindow", "Остаток"))
         self.label_3.setText(_translate("OrderCreateWindow", "Поиск наименований:"))
         self.label_4.setText(_translate("OrderCreateWindow", "TextLabel"))
         self.label_5.setText(_translate("OrderCreateWindow", "TextLabel"))
-
+        self.rightTableInit()
     def openClientCreate(self):
         manager.show_clientCreateWindow()
+
+    def rightTableInit(self):
+        if self.currentTovarIndexes:
+            placeholders = ','.join(['%s'] * len(self.currentTovarIndexes))
+            c.execute(f"SELECT * FROM tovar WHERE ID NOT IN ({placeholders})", self.currentTovarIndexes)
+            result = c.fetchall()
+        else:
+            c.execute("SELECT * FROM tovar")
+            result = c.fetchall()
+
+        self.tableWidget_2.setRowCount(len(result))
+        for i in range(len(result)):
+            item = QtWidgets.QTableWidgetItem(str(result[i][0]))
+            self.tableWidget_2.setItem(i,0,item)
+            
+            c.execute("SELECT Value FROM typetovar WHERE ID = %s",(result[i][3],))
+            type_name = c.fetchone()[0]
+            c.execute("SELECT Value FROM manufacturer WHERE ID = %s",(result[i][2],))
+            manufacture_name = c.fetchone()[0]
+            
+            item = QtWidgets.QTableWidgetItem(f"{type_name} {manufacture_name} {result[i][1]}")
+            self.tableWidget_2.setItem(i,1,item)
+            
+            c.execute("SELECT Value FROM garantytype WHERE ID = %s",(result[i][6],))
+            garant_type = c.fetchone()[0]
+            item = QtWidgets.QTableWidgetItem(f"{result[i][5]} {garant_type}")
+            self.tableWidget_2.setItem(i,2,item)
+
+            item = QtWidgets.QTableWidgetItem(str(result[i][4]))
+            self.tableWidget_2.setItem(i,3,item)
+            item = QtWidgets.QTableWidgetItem(str(result[i][7]))
+            self.tableWidget_2.setItem(i,4,item)
+
+            pushbutton = QtWidgets.QPushButton()
+            pushbutton.setText("+")
+            pushbutton.clicked.connect(lambda checked, row=i: self.tableButtonClicked(row))
+            widget = QtWidgets.QWidget()
+            layout = QtWidgets.QHBoxLayout(widget)
+            layout.addWidget(pushbutton)
+            layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            layout.setContentsMargins(0, 0, 0, 0)
+            self.tableWidget_2.setCellWidget(i, 5, widget)
+
+        self.tableWidget_2.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        self.tableWidget_2.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
+        self.tableWidget_2.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        self.tableWidget_2.horizontalHeader().setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        self.tableWidget_2.horizontalHeader().setSectionResizeMode(5, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+
+    def tableButtonClicked(self,row):
+        row_data = self.tableWidget_2.item(row, 0).text()
+        self.currentTovarIndexes.append(row_data)
+        self.rightTableInit()
+        self.leftTableInit()
+
+    def tableButtonUnClicked(self,row):
+        row_data = self.tableWidget.item(row, 0).text()
+        self.currentTovarIndexes.remove(row_data)
+        self.rightTableInit()
+        self.leftTableInit()
+
+    def leftTableInit(self):
+        if self.currentTovarIndexes:
+            placeholders = ','.join(['%s'] * len(self.currentTovarIndexes))
+            c.execute(f"SELECT * FROM tovar WHERE ID IN ({placeholders})", self.currentTovarIndexes)
+            result = c.fetchall()
+        else:
+            result = []
+
+        # Сохраняем текущие значения spinbox'ов перед обновлением таблицы
+        saved_values = {}
+        for i in range(self.tableWidget.rowCount()):
+            cwidget = self.tableWidget.cellWidget(i, 3)
+            if cwidget is not None:
+                cspinbox = cwidget.findChild(QtWidgets.QSpinBox)
+                if cspinbox is not None:
+                    item = self.tableWidget.item(i, 0)
+                    if item is not None:
+                        tovar_id = item.text()
+                        saved_values[tovar_id] = cspinbox.value()
+
+        self.tableWidget.setRowCount(len(result))
+        for i in range(len(result)):
+            item = QtWidgets.QTableWidgetItem(str(result[i][0]))
+            self.tableWidget.setItem(i,0,item)
+            
+            c.execute("SELECT Value FROM typetovar WHERE ID = %s",(result[i][3],))
+            type_name = c.fetchone()[0]
+            c.execute("SELECT Value FROM manufacturer WHERE ID = %s",(result[i][2],))
+            manufacture_name = c.fetchone()[0]
+            
+            item = QtWidgets.QTableWidgetItem(f"{type_name} {manufacture_name} {result[i][1]}")
+            self.tableWidget.setItem(i,1,item)
+            
+            item = QtWidgets.QTableWidgetItem(str(result[i][4]))
+            self.tableWidget.setItem(i,2,item)
+
+            spinbox = QtWidgets.QSpinBox()
+            spinbox.setMinimum(1)
+            spinbox.setMaximum(result[i][7])
+            
+            # Восстанавливаем сохраненное значение или устанавливаем 1 по умолчанию
+            tovar_id = str(result[i][0])
+            if tovar_id in saved_values:
+                spinbox.setValue(saved_values[tovar_id])
+            else:
+                spinbox.setValue(1)
+                
+            # Передаем номер строки в функцию
+            spinbox.valueChanged.connect(lambda value, row=i: self.spinboxchange(row))
+            widget1 = QtWidgets.QWidget()
+            layout1 = QtWidgets.QHBoxLayout(widget1)
+            layout1.addWidget(spinbox)
+            layout1.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            layout1.setContentsMargins(0, 0, 0, 0)
+            self.tableWidget.setCellWidget(i, 3, widget1)
+
+            # Сразу обновляем стоимость для текущего значения
+            costn = spinbox.value()
+            item = QtWidgets.QTableWidgetItem(str(result[i][4] * costn))
+            self.tableWidget.setItem(i,4,item)
+
+            pushbutton = QtWidgets.QPushButton()
+            pushbutton.setText("-")
+            pushbutton.clicked.connect(lambda checked, row=i: self.tableButtonUnClicked(row))
+            widget2 = QtWidgets.QWidget()
+            layout2 = QtWidgets.QHBoxLayout(widget2)
+            layout2.addWidget(pushbutton)
+            layout2.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            layout2.setContentsMargins(0, 0, 0, 0)
+            self.tableWidget.setCellWidget(i, 5, widget2)
+
+        self.tableWidget.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        self.tableWidget.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
+        self.tableWidget.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        self.tableWidget.horizontalHeader().setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        self.tableWidget.horizontalHeader().setSectionResizeMode(5, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+
+    def spinboxchange(self, row):
+        """Обновляет стоимость для указанной строки"""
+        cwidget = self.tableWidget.cellWidget(row, 3)
+        if cwidget is not None:
+            cspinbox = cwidget.findChild(QtWidgets.QSpinBox)
+            if cspinbox is not None:
+                price_item = self.tableWidget.item(row, 2)
+                if price_item is not None:
+                    try:
+                        price = float(price_item.text())
+                        quantity = cspinbox.value()
+                        cost_item = QtWidgets.QTableWidgetItem(str(price * quantity))
+                        self.tableWidget.setItem(row, 4, cost_item)
+                    except ValueError:
+                        pass
 
     def close_event(self, event):
         if manager.current_window == manager.clientCreate_window:

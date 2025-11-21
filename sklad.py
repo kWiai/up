@@ -23,7 +23,7 @@ class Ui_Sklad(object):
         self.comboBox = QtWidgets.QComboBox(parent=self.centralwidget)
         self.comboBox.setGeometry(QtCore.QRect(100, 40, 151, 26))
         self.comboBox.setObjectName("comboBox")
-        self.comboBox.addItems(["...по артикулу","...по производителю","...по названию"])
+        self.comboBox.addItems(["...по артикулу","...по названию"])
         self.groupBox = QtWidgets.QGroupBox(parent=self.centralwidget)
         self.groupBox.setGeometry(QtCore.QRect(680, 20, 321, 581))
         self.groupBox.setObjectName("groupBox")
@@ -126,13 +126,7 @@ class Ui_Sklad(object):
             c.execute("SELECT * FROM tovar WHERE ID = %s",(self.lineEdit.text(),))
 
         elif self.comboBox.currentIndex() == 1:
-            c.execute("SELECT ID FROM manufacturer WHERE Value = %s",(self.lineEdit.text(),))
-            mid = c.fetchone()
-            if mid!=None:
-                c.execute("SELECT * FROM tovar WHERE ManufacturerID = %s",(mid[0],))
-
-        elif self.comboBox.currentIndex() == 2:
-            c.execute("SELECT * FROM tovar WHERE Name = %s",(self.lineEdit.text(),))
+            c.execute("SELECT * FROM tovar WHERE Name LIKE '%"+self.lineEdit.text()+"%'")
 
         result = c.fetchall()
         self.tableWidget.setRowCount(len(result))
