@@ -9,6 +9,10 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 from config import manager
 from connector import c,db
+from datetime import datetime
+from PyQt6.QtWidgets import QMessageBox
+from decimal import Decimal
+from PyQt6.QtGui import QAction
 
 class Ui_OrderCreate(object):
     def __init__(self):
@@ -23,10 +27,6 @@ class Ui_OrderCreate(object):
         self.centralwidget.setObjectName("centralwidget")
         self.OrderCreateWindow = OrderCreateWindow
         self.OrderCreateWindow.closeEvent = self.close_event
-        self.pushButton = QtWidgets.QPushButton(parent=self.centralwidget)
-        self.pushButton.setGeometry(QtCore.QRect(10, 10, 211, 29))
-        self.pushButton.setObjectName("pushButton")
-        self.pushButton.clicked.connect(self.addOrder)
         self.label = QtWidgets.QLabel(parent=self.centralwidget)
         self.label.setGeometry(QtCore.QRect(10, 50, 71, 20))
         self.label.setObjectName("label")
@@ -99,6 +99,12 @@ class Ui_OrderCreate(object):
         self.statusbar = QtWidgets.QStatusBar(parent=OrderCreateWindow)
         self.statusbar.setObjectName("statusbar")
         OrderCreateWindow.setStatusBar(self.statusbar)
+        menubar = self.OrderCreateWindow.menuBar()
+        new_order_action = QAction("Добавить заказ в систему", self.OrderCreateWindow)
+        new_order_action.triggered.connect(self.addOrder)
+        menubar.addAction(new_order_action)
+
+
 
         self.retranslateUi(OrderCreateWindow)
         QtCore.QMetaObject.connectSlotsByName(OrderCreateWindow)
@@ -106,7 +112,6 @@ class Ui_OrderCreate(object):
     def retranslateUi(self, OrderCreateWindow):
         _translate = QtCore.QCoreApplication.translate
         OrderCreateWindow.setWindowTitle(_translate("OrderCreateWindow", "Создание нового заказа"))
-        self.pushButton.setText(_translate("OrderCreateWindow", "Добавить заказ в систему"))
         self.label.setText(_translate("OrderCreateWindow", "Клиент:"))
         self.pushButton_2.setText(_translate("OrderCreateWindow", "Добавить нового клиента"))
         self.label_2.setText(_translate("OrderCreateWindow", "Корзина заказа:"))
@@ -339,15 +344,59 @@ class Ui_OrderCreate(object):
                     except ValueError:
                         pass
     def clientComboInit(self):
+        self.comboBox.clear()
         self.comboBox.addItem('',userData=None)
-        c.execute("SELECT CONCAT(users.Surname,' ',users.Name,' ',users.Patronymic,', тел. ',users.Phone),users.ID FROM orders INNER JOIN users ON orders.ClientID = users.ID")
+        c.execute("SELECT CONCAT(Surname,' ',Name,' ',Patronymic,', тел. ',Phone),ID FROM users WHERE RoleID = 3")
         clients = c.fetchall()
         for i in clients:
             self.comboBox.addItem(i[0],userData=i[1])
 
-    def addTovar(self):
-        pass
-    
+    def addOrder(self):
+        
+        clientID = self.comboBox.currentData()
+        costs = []
+        if clientID == None:
+            QMessageBox.critical(None,"Ошибка","Клиент не выбран",QMessageBox.StandardButton.Ok)
+        else:
+            tableRowCount = self.tableWidget.rowCount()
+            if tableRowCount == 0:
+                QMessageBox.critical(None,"Ошибка","Не добавлены товары",QMessageBox.StandardButton.Ok)
+            else:
+                for i in range(tableRowCount):
+                    
+                    widget = self.tableWidget.cellWidget(i, 3)
+                    if widget is not None:
+                        spinbox1 = widget.findChild(QtWidgets.QSpinBox)
+                        if spinbox1:
+                            cost = float(self.tableWidget.item(i, 2).text())
+                            costs.append(spinbox1.value()*cost)
+                            
+            
+                totalcost = sum(costs)
+                currentDate = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                c.execute("INSERT INTO orders(DateCreate,EmployerID,ClientID,TotalCost,StatusID) VALUES (%s,%s,%s,%s,%s)",(currentDate,manager.get_current_userID(),clientID,Decimal(totalcost),1,))
+                db.commit()
+                c.execute("SELECT LAST_INSERT_ID();")
+                order_id = c.fetchone()[0]
+                
+                for i in range(tableRowCount):
+                    tovarID = self.tableWidget.item(i,0).text()
+                    widget = self.tableWidget.cellWidget(i, 3)
+                    if widget is not None:
+                        spinbox1 = widget.findChild(QtWidgets.QSpinBox)
+                        if spinbox1:
+                            count = spinbox1.value()
+                            cost = float(self.tableWidget.item(i, 2).text())*count
+                    c.execute("INSERT INTO ordershopcase(OrderID,TovarID,Count,Cost) VALUES(%s,%s,%s,%s)",(order_id,tovarID,count,cost,))
+                    db.commit()
+                    c.execute("UPDATE tovar SET Count = Count - %s WHERE ID = %s",(count,tovarID,))
+                    db.commit()
+                
+                QMessageBox.information(None,"Успешно",f"Новый заказ №{order_id} от {currentDate} успешно добавлен в БД!",QMessageBox.StandardButton.Ok)
+                self.currentTovarIndexes = []
+                self.rightTableInit()
+                self.leftTableInit()
+            
     def close_event(self, event):
         if manager.current_window == manager.clientCreate_window:
             pass

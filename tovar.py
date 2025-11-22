@@ -235,7 +235,7 @@ class Ui_Tovar(object):
             garantValue = self.spinBox.value()
         count = self.spinBox_2.value()
         typeID = self.typeBox.currentData()
-        if manufactureID == None or cost == 0 or name == "" or (self.checkBox.isChecked() and (garantValue == 0 or (garantType == None or garantType == 1))) or count == 0 or typeID == None:
+        if manufactureID == None or cost == 0 or name.strip() == "" or (self.checkBox.isChecked() and (garantValue == 0 or (garantType == None or garantType == 1))) or count == 0 or typeID == None:
             QMessageBox.critical(None,"Ошибка","Данные заполнены некорректно",QMessageBox.StandardButton.Ok)
         else:
             chars = []
@@ -268,7 +268,7 @@ class Ui_Tovar(object):
 
     def addNewChar(self):        
         charName = self.lineEdit_3.text()
-        if charName == "":
+        if charName.strip() == "":
             QMessageBox.critical(None,"ошибка","некоректно введены данные",QMessageBox.StandardButton.Ok)
         else:
             c.execute("INSERT INTO characters (Value) VALUES(%s)",(charName,))
@@ -296,7 +296,7 @@ class Ui_Tovar(object):
             self.tableWidget_newType.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Stretch)
 
     def add_type(self):
-        if self.lineEdit_2.text() == "":
+        if self.lineEdit_2.text().strip() == "":
             QMessageBox.critical(None,"Ошибка","Дайте название типу",QMessageBox.StandardButton.Ok)
         else:
             self.newChars = []

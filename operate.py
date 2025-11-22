@@ -4,6 +4,7 @@ from config import manager
 from PyQt6.QtWidgets import QMessageBox
 import datetime
 from decimal import Decimal
+from PyQt6.QtGui import QAction
 
 class Ui_Operate(object):
     def __init__(self):
@@ -14,9 +15,6 @@ class Ui_Operate(object):
         OperateWindow.resize(1045, 655)
         self.centralwidget = QtWidgets.QWidget(parent=OperateWindow)
         self.centralwidget.setObjectName("centralwidget")
-        self.pushButton = QtWidgets.QPushButton(parent=self.centralwidget)
-        self.pushButton.setGeometry(QtCore.QRect(10, 10, 371, 29))
-        self.pushButton.setObjectName("pushButton")
         self.pushButton_2 = QtWidgets.QPushButton(parent=self.centralwidget)
         self.pushButton_2.setGeometry(QtCore.QRect(10, 50, 171, 29))
         self.pushButton_2.setObjectName("pushButton_2")
@@ -113,6 +111,11 @@ class Ui_Operate(object):
         self.statusbar = QtWidgets.QStatusBar(parent=OperateWindow)
         self.statusbar.setObjectName("statusbar")
         OperateWindow.setStatusBar(self.statusbar)
+        
+        menubar = OperateWindow.menuBar()
+        check_tovar_action = QAction("Посмотреть список товаров на складе", OperateWindow)
+        check_tovar_action.triggered.connect(self.open_sklad)
+        menubar.addAction(check_tovar_action)
 
         self.retranslateUi(OperateWindow)
         QtCore.QMetaObject.connectSlotsByName(OperateWindow)
@@ -120,8 +123,6 @@ class Ui_Operate(object):
     def retranslateUi(self, OperateWindow):
         _translate = QtCore.QCoreApplication.translate
         OperateWindow.setWindowTitle(_translate("OperateWindow", "Модуль оператора"))
-        self.pushButton.setText(_translate("OperateWindow", "Посмотреть список товартов на складе"))
-        self.pushButton.clicked.connect(self.open_sklad)
         self.pushButton_2.setText(_translate("OperateWindow", "Создать новый заказ"))
         self.pushButton_3.setText(_translate("OperateWindow", "Удалить заказ из системы"))
         self.label.setText(_translate("OperateWindow", "Поиск по:"))
@@ -147,7 +148,6 @@ class Ui_Operate(object):
         sr = c.fetchall()
         for i in range(len(sr)):        
             self.comboBox_2.addItem(str(sr[i][0]))
-            print(sr[i][0])
         self.change = False
         self.comboBox_2.setVisible(False)
         self.initOrdersTable()
@@ -159,7 +159,29 @@ class Ui_Operate(object):
         manager.show_orderCreateWindow()
 
     def deleteOrder(self):
-        print("бабожир")
+        selected_items = self.tableWidget.selectedItems()
+        if selected_items:
+            reply = QtWidgets.QMessageBox.question(
+                None,
+                "Подтверждение",
+                "Вы уверены?",
+                QtWidgets.QMessageBox.StandardButton.Yes | 
+                QtWidgets.QMessageBox.StandardButton.No,
+                QtWidgets.QMessageBox.StandardButton.No  # кнопка по умолчанию
+            )
+            if reply == QtWidgets.QMessageBox.StandardButton.Yes:
+                order_text = selected_items[1].text()
+                orderID = int(order_text.split()[1])
+                c.execute("DELETE FROM ordershopcase WHERE OrderID = %s", (orderID,)),
+                db.commit()
+                c.execute("DELETE FROM orders WHERE ID = %s",(orderID,))
+                db.commit()
+                QMessageBox.information(None,"Успешно","Заказ удален из системы",QMessageBox.StandardButton.Ok)
+                self.initOrdersTable()
+                self.initDescriptionTableAndLabels()
+            else:
+                pass 
+            
 
     def initDescriptionTableAndLabels(self):
         self.change = True
@@ -248,28 +270,18 @@ class Ui_Operate(object):
                 self.currentBoxIndex = self.comboBox_2.currentIndex()
                 selected_items = self.tableWidget.selectedItems()
                 
-                if selected_items and len(selected_items) > 1:
-                    # Правильно извлекаем ID заказа
-                    order_text = selected_items[1].text()  # Получаем текст вида "№ 123 от 13.11.2025"
+                if selected_items:
+
+                    order_text = selected_items[1].text()  
+                    orderID = int(order_text.split()[1])
                     
-                    # Извлекаем число после "№ "
-                    try:
-                        # Разделяем текст по пробелам и берем вторую часть (число)
-                        orderID = int(order_text.split()[1])
-                        
-                        # В базе данных индексы статусов начинаются с 1, а currentIndex с 0
-                        status_id = self.currentBoxIndex + 1
-                        
-                        c.execute("UPDATE orders SET StatusID = %s WHERE ID = %s", (status_id, orderID))
-                        db.commit()
-                        print(f"Статус заказа {orderID} изменен на {status_id}")
-                        
-                    except (ValueError, IndexError) as e:
-                        print(f"Ошибка при извлечении ID заказа: {e}")
-                    except Exception as e:
-                        print(f"Ошибка при обновлении статуса: {e}")
+                    status_id = self.currentBoxIndex + 1
+                    
+                    c.execute("UPDATE orders SET StatusID = %s WHERE ID = %s", (status_id, orderID))
+                    db.commit()
+
                 else:
-                    print("Не выбран заказ для изменения статуса")
+                    pass
 
             else:
                 self.change = True

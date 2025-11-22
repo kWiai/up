@@ -2,21 +2,16 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 from connector import c
 from config import manager
-
+from PyQt6.QtGui import QAction
 
 class Ui_Sklad(object):
     def setupUi(self, SkladWindow):
         SkladWindow.setObjectName("SkladWindow")
-        SkladWindow.resize(1017, 663)
+        SkladWindow.resize(1017, 678)
         self.centralwidget = QtWidgets.QWidget(parent=SkladWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.SkladWindow = SkladWindow
         self.SkladWindow.closeEvent = self.close_event
-        if manager.get_current_RoleID() == 2:
-            self.pushButton = QtWidgets.QPushButton(parent=self.centralwidget)
-            self.pushButton.setGeometry(QtCore.QRect(10, 0, 201, 29))
-            self.pushButton.setObjectName("pushButton")
-            self.pushButton.clicked.connect(self.appendTovar)
         self.label = QtWidgets.QLabel(parent=self.centralwidget)
         self.label.setGeometry(QtCore.QRect(20, 40, 71, 20))
         self.label.setObjectName("label")
@@ -88,15 +83,18 @@ class Ui_Sklad(object):
         self.statusbar = QtWidgets.QStatusBar(parent=SkladWindow)
         self.statusbar.setObjectName("statusbar")
         SkladWindow.setStatusBar(self.statusbar)
-
+        if manager.get_current_RoleID() == 2:
+            menubar = self.SkladWindow.menuBar()
+            new_tovar_action = QAction("Добавить товар в систему", self.SkladWindow)
+            new_tovar_action.triggered.connect(self.appendTovar)
+            menubar.addAction(new_tovar_action)
+        
         self.retranslateUi(SkladWindow)
         QtCore.QMetaObject.connectSlotsByName(SkladWindow)
 
     def retranslateUi(self, SkladWindow):
         _translate = QtCore.QCoreApplication.translate
         SkladWindow.setWindowTitle(_translate("SkladWindow", "Форма складского учета"))
-        if manager.get_current_RoleID() == 2:
-            self.pushButton.setText(_translate("SkladWindow", "Добавить товар в систему"))
         self.label.setText(_translate("SkladWindow", "Поиск по:"))
         self.groupBox.setTitle(_translate("SkladWindow", "Характеристики товара"))
         item = self.tableWidget.horizontalHeaderItem(0)
