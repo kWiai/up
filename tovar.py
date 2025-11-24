@@ -153,22 +153,31 @@ class Ui_Tovar(object):
         self.pushButton_5.setText(_translate("TovarWindow", "Отменить действие"))
         self.manufactureBox.addItem("", userData=None)
         self.typeBox.addItem("", userData=None)
-        self.garantBox.addItem("", userData=None)
         c.execute("SELECT Value,ID FROM typetovar")
         types = c.fetchall()
-        c.execute("SELECT Value,ID FROM garantytype")
-        garantytypes = c.fetchall()
         c.execute("SELECT Value,ID FROM manufacturer")
         manufacturer = c.fetchall()
         for manufact in manufacturer:
             self.manufactureBox.addItem(manufact[0],userData=manufact[1])
         for type in types:
             self.typeBox.addItem(type[0],userData=type[1])
-        for garant in garantytypes:
-            self.garantBox.addItem(garant[0],userData=garant[1])
+        self.initGarantTypeBox()
+
         self.garantBox.setEnabled(False)
-        self.garantBox.setCurrentIndex(1)
-        
+        self.garantBox.setCurrentIndex(0)
+    
+    def initGarantTypeBox(self):
+        self.garantBox.clear()
+
+        c.execute("SELECT Value,ID FROM garantytype")
+        garantytypes = c.fetchall()
+        for garant in garantytypes:
+            if self.checkBox.isChecked():
+                if garant[0] != "отсутствует":
+                    self.garantBox.addItem(garant[0],userData=garant[1])
+            else:
+                self.garantBox.addItem(garant[0],userData=garant[1])
+
     def swaptype(self):
         if self.typeBox.currentText() == "":
             self.groupBox_3.setVisible(False)
@@ -182,15 +191,16 @@ class Ui_Tovar(object):
             
             
     def garant_toggled(self,checked):
+        self.initGarantTypeBox()
         if checked:
             self.spinBox.setEnabled(True)
             self.garantBox.setEnabled(True)
-            self.garantBox.setCurrentIndex(2)
+            self.garantBox.setCurrentIndex(0)
         else:
             self.spinBox.setEnabled(False)
             self.spinBox.setValue(0)
             self.garantBox.setEnabled(False)
-            self.garantBox.setCurrentIndex(1)
+            self.garantBox.setCurrentIndex(0)
     def charappend(self):
         self.changed = True
         if self.groupBox_3.isVisible():
