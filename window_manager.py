@@ -16,6 +16,8 @@ class WindowManager:
             self.app = QtWidgets.QApplication(sys.argv)
             self.current_window = None
             self.current_user_id = None
+            self.currentTovarIndexes = []
+            self.saved_spin_values = {}
             self._initialized = True
             self.suppress_order_close_event = False  # Флаг для подавления события
     
@@ -31,6 +33,30 @@ class WindowManager:
     def get_current_RoleID(self):
         return self.current_role_id
     
+    def get_current_tovar_indexes(self):
+        return self.currentTovarIndexes
+    
+    def append_to_tovar_indexes(self,value):
+        self.currentTovarIndexes.append(value)
+    def remove_from_tovar_indexes(self,value):
+        self.currentTovarIndexes.remove(value)
+    def clear_tovar_indexes(self):
+        self.currentTovarIndexes = []
+    
+    def get_saved_spin_values(self):
+        return self.saved_spin_values
+    
+    def append_spin_values(self,tid,value):
+        self.saved_spin_values[tid] = value
+
+    def change_spin_value(self,tid,value):
+        
+        if tid in self.saved_spin_values:
+            self.saved_spin_values[tid] = value
+
+    def clear_spin_values(self):
+        self.saved_spin_values = {}
+
     def show_registration(self):
         """Показать окно регистрации"""
         from reg import Ui_Reg

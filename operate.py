@@ -12,7 +12,7 @@ class Ui_Operate(object):
         self.change = False
     def setupUi(self, OperateWindow):
         OperateWindow.setObjectName("OperateWindow")
-        OperateWindow.resize(1045, 655)
+        OperateWindow.resize(1045, 670)
         self.centralwidget = QtWidgets.QWidget(parent=OperateWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.pushButton_2 = QtWidgets.QPushButton(parent=self.centralwidget)

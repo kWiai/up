@@ -8,6 +8,7 @@ class Ui_Tovar(object):
     def __init__(self):
         self.changed = False
         self.newChars = []
+        self.checks = []
 
         
     def setupUi(self, TovarWindow):
@@ -204,7 +205,18 @@ class Ui_Tovar(object):
                 c.execute("DELETE FROM characters WHERE Value = %s",(char,))
                 db.commit()
             self.newChars = []
+
+        for i in range(self.tableWidget_newType.rowCount()):
+            widget = self.tableWidget_newType.cellWidget(i, 0)
+            if widget is not None:
+                checkbox = widget.findChild(QtWidgets.QCheckBox)
+                if checkbox:
+                    checkbox.setChecked(False)
+
         self.groupBox_2.setVisible(False)
+        if self.typeBox.currentText() != "":
+            self.charTableInit()
+            self.groupBox_3.setVisible(True)
         
     
     def charTableInit(self):
@@ -276,24 +288,45 @@ class Ui_Tovar(object):
             db.commit()
             self.newCharTableInit()
             self.lineEdit_3.setText("")
+
     def newCharTableInit(self):
         c.execute("SELECT Value FROM characters")
         characters = c.fetchall()
         self.tableWidget_newType.setRowCount(len(characters))
+        
+        
+        current_checks = {}
+        for i in range(self.tableWidget_newType.rowCount()):
+            widget = self.tableWidget_newType.cellWidget(i, 0)
+            if widget is not None:
+                checkbox = widget.findChild(QtWidgets.QCheckBox)
+                if checkbox:
+                    char_item = self.tableWidget_newType.item(i, 1)
+                    if char_item is not None:
+                        current_checks[char_item.text()] = checkbox.isChecked()
+        
         for i in range(len(characters)):
-            item = QtWidgets.QTableWidgetItem(str(characters[i][0]))
+            char_name = str(characters[i][0])
+            item = QtWidgets.QTableWidgetItem(char_name)
             item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable)
-            self.tableWidget_newType.setItem(i,1,item)
+            self.tableWidget_newType.setItem(i, 1, item)
+            
             checkbox = QtWidgets.QCheckBox()
-
+            
+            # Восстанавливаем состояние чекбокса, если оно было сохранено
+            if char_name in current_checks:
+                checkbox.setChecked(current_checks[char_name])
+            
             widget = QtWidgets.QWidget()
             layout = QtWidgets.QHBoxLayout(widget)
             layout.addWidget(checkbox)
             layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             layout.setContentsMargins(0, 0, 0, 0)
             self.tableWidget_newType.setCellWidget(i, 0, widget)
-            self.tableWidget_newType.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
-            self.tableWidget_newType.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Stretch)
+        
+        self.tableWidget_newType.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        self.tableWidget_newType.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Stretch)
+
 
     def add_type(self):
         if self.lineEdit_2.text().strip() == "":

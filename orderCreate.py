@@ -14,11 +14,12 @@ from PyQt6.QtWidgets import QMessageBox
 from decimal import Decimal
 from PyQt6.QtGui import QAction
 
+
 class Ui_OrderCreate(object):
     def __init__(self):
-        self.currentTovarIndexes = []
         self.totalcount = 0
         self.totalcost = 0
+
     def setupUi(self, OrderCreateWindow):
         OrderCreateWindow.setObjectName("OrderCreateWindow")
         OrderCreateWindow.setGeometry(50,100,1399, 674)
@@ -143,20 +144,30 @@ class Ui_OrderCreate(object):
         self.label_cost.adjustSize()
         self.label_count.adjustSize()
         self.rightTableInit()
+        self.leftTableInit()
         self.clientComboInit()
 
     def openClientCreate(self):
+        self.save_all_spin_values()
         manager.show_clientCreateWindow()
 
     def rightTableInit(self):
-        if self.currentTovarIndexes:
+        if manager.get_current_tovar_indexes():
             if self.lineEdit.text() == "":
-                placeholders = ','.join(['%s'] * len(self.currentTovarIndexes))
-                c.execute(f"SELECT * FROM tovar WHERE ID NOT IN ({placeholders}) AND Count > 0", self.currentTovarIndexes)
+                placeholders = ','.join(['%s'] * len(manager.get_current_tovar_indexes()))
+                c.execute(f"SELECT * FROM tovar WHERE ID NOT IN ({placeholders}) AND Count > 0", manager.get_current_tovar_indexes())
                 result = c.fetchall()
             else:
-                placeholders = ','.join(['%s'] * len(self.currentTovarIndexes))
-                c.execute("SELECT * FROM tovar INNER JOIN manufacturer ON tovar.ManufacturerID = manufacturer.ID INNER JOIN typetovar ON tovar.TypeID = typetovar.ID WHERE CONCAT(typetovar.Value,' ',manufacturer.Value,' ',tovar.Name) LIKE '%"+self.lineEdit.text()+"%' AND ID NOT IN ({placeholders}) AND Count > 0", self.currentTovarIndexes)
+                placeholders = ','.join(['%s'] * len(manager.get_current_tovar_indexes()))
+                search_term = f"%{self.lineEdit.text()}%"
+                c.execute(f"""
+                    SELECT * FROM tovar 
+                    INNER JOIN manufacturer ON tovar.ManufacturerID = manufacturer.ID 
+                    INNER JOIN typetovar ON tovar.TypeID = typetovar.ID 
+                    WHERE CONCAT(typetovar.Value,' ',manufacturer.Value,' ',tovar.Name) LIKE %s 
+                    AND tovar.ID NOT IN ({placeholders}) 
+                    AND Count > 0
+                """, [search_term] + manager.get_current_tovar_indexes())
                 result = c.fetchall()
         else:
             if self.lineEdit.text() == "":
@@ -207,26 +218,26 @@ class Ui_OrderCreate(object):
 
     def tableButtonClicked(self,row):
         row_data = self.tableWidget_2.item(row, 0).text()
-        self.currentTovarIndexes.append(row_data)
+        manager.append_to_tovar_indexes(row_data)
+        manager.append_spin_values(row_data, 1)
         self.rightTableInit()
         self.leftTableInit()
 
     def tableButtonUnClicked(self,row):
         row_data = self.tableWidget.item(row, 0).text()
-        self.currentTovarIndexes.remove(row_data)
+        manager.remove_from_tovar_indexes(row_data)
+        
         self.rightTableInit()
         self.leftTableInit()
 
     def leftTableInit(self):
-        if self.currentTovarIndexes:
-            placeholders = ','.join(['%s'] * len(self.currentTovarIndexes))
-            c.execute(f"SELECT * FROM tovar WHERE ID IN ({placeholders})", self.currentTovarIndexes)
+        if manager.get_current_tovar_indexes():
+            placeholders = ','.join(['%s'] * len(manager.get_current_tovar_indexes()))
+            c.execute(f"SELECT * FROM tovar WHERE ID IN ({placeholders})", manager.get_current_tovar_indexes())
             result = c.fetchall()
         else:
             result = []
 
-        # Сохраняем текущие значения spinbox'ов перед обновлением таблицы
-        saved_values = {}
         for i in range(self.tableWidget.rowCount()):
             cwidget = self.tableWidget.cellWidget(i, 3)
             if cwidget is not None:
@@ -235,7 +246,7 @@ class Ui_OrderCreate(object):
                     item = self.tableWidget.item(i, 0)
                     if item is not None:
                         tovar_id = item.text()
-                        saved_values[tovar_id] = cspinbox.value()
+                        manager.append_spin_values(tovar_id,cspinbox.value())
 
         self.tableWidget.setRowCount(len(result))
         for i in range(len(result)):
@@ -259,6 +270,7 @@ class Ui_OrderCreate(object):
             
             # Восстанавливаем сохраненное значение или устанавливаем 1 по умолчанию
             tovar_id = str(result[i][0])
+            saved_values = manager.get_saved_spin_values()
             if tovar_id in saved_values:
                 spinbox.setValue(saved_values[tovar_id])
             else:
@@ -313,12 +325,12 @@ class Ui_OrderCreate(object):
         self.label_count.adjustSize()
 
     def spinboxchange(self, row):
-        """Обновляет стоимость для указанной строки"""
         cwidget = self.tableWidget.cellWidget(row, 3)
         if cwidget is not None:
             cspinbox = cwidget.findChild(QtWidgets.QSpinBox)
             if cspinbox is not None:
                 price_item = self.tableWidget.item(row, 2)
+                id_item = self.tableWidget.item(row,0)
                 if price_item is not None:
                     try:
                         price = float(price_item.text())
@@ -341,6 +353,7 @@ class Ui_OrderCreate(object):
                         self.label_count.setText(f"Кол-во наименований: {sum(counts)}")
                         self.label_cost.adjustSize()
                         self.label_count.adjustSize()
+                        manager.change_spin_value(id_item.text(),cspinbox.value())
                     except ValueError:
                         pass
     def clientComboInit(self):
@@ -351,6 +364,17 @@ class Ui_OrderCreate(object):
         for i in clients:
             self.comboBox.addItem(i[0],userData=i[1])
 
+    def save_all_spin_values(self):
+
+        for i in range(self.tableWidget.rowCount()):
+            cwidget = self.tableWidget.cellWidget(i, 3)
+            if cwidget is not None:
+                cspinbox = cwidget.findChild(QtWidgets.QSpinBox)
+                if cspinbox is not None:
+                    item = self.tableWidget.item(i, 0)
+                    if item is not None:
+                        tovar_id = item.text()
+                        manager.append_spin_values(tovar_id, cspinbox.value())
     def addOrder(self):
         
         clientID = self.comboBox.currentData()
@@ -393,7 +417,7 @@ class Ui_OrderCreate(object):
                     db.commit()
                 
                 QMessageBox.information(None,"Успешно",f"Новый заказ №{order_id} от {currentDate} успешно добавлен в БД!",QMessageBox.StandardButton.Ok)
-                self.currentTovarIndexes = []
+                manager.clear_tovar_indexes()
                 self.rightTableInit()
                 self.leftTableInit()
             
@@ -401,6 +425,7 @@ class Ui_OrderCreate(object):
         if manager.current_window == manager.clientCreate_window:
             pass
         else:
+            
             manager.show_operateWindow()
             event.accept()
 
